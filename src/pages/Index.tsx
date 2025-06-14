@@ -23,7 +23,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
       <Header />
 
-      <main className="w-full max-w-7xl mx-auto flex-grow p-4 sm:p-8 flex items-center">
+      <main className="w-full max-w-7xl mx-auto flex-grow p-4 sm:p-8">
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1 w-full lg:sticky lg:top-8">
             <MovieControls
