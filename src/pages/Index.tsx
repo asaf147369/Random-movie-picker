@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Movie, TmdbGenre, AppCategory, SelectedCategoryType } from '@/types';
 import { Shuffle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-// Import QueryFunctionContext and QueryKey, and ensure useQuery and useQueryClient are imported
 import { QueryFunctionContext, QueryKey, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
 
@@ -59,30 +58,34 @@ const Index = () => {
   });
 
   // Updated useQuery for movies with explicit generic arguments
-  const { data: movies, isLoading: isLoadingMovies, refetch: fetchMoviesForCategory } = useQuery<any, Error, Movie[], MoviesQueryKey>({
+  const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useQuery<any, Error, Movie[], MoviesQueryKey>({
     queryKey: ['tmdb', 'getMovies', selectedCategory],
     queryFn: fetchTmdbData,
     enabled: false, // Don't fetch immediately; wait for category selection or button click
-    onSuccess: (data) => { // data is now correctly typed as Movie[]
+    onSuccess: (data: Movie[]) => { // data is now correctly typed as Movie[]
       if (data && data.length > 0) {
         const randomIndex = Math.floor(Math.random() * data.length);
         setCurrentMovie(data[randomIndex]);
+        // Optional: toast.success("Fetched new movies and picked one!");
       } else {
         setCurrentMovie(null);
         if (selectedCategory !== "All") {
-            toast.info(`No movies found for this category. Try "All" or another category!`);
+            toast.info(`No movies found for '${displayCategories.find(c=>c.id === selectedCategory)?.name || 'this category'}'. Try "All" or another category!`);
         } else {
             toast.info(`No movies found. Please try again later.`);
         }
       }
     },
-    onError: () => {
+    onError: (error: Error) => {
         setCurrentMovie(null); // Clear movie on error
+        toast.error(`Failed to fetch movies: ${error.message}`);
     }
   });
   
   useEffect(() => {
-    if (genres) { 
+    // Fetch movies when the selected category changes or when genres are loaded for the first time.
+    // This ensures that fetchMoviesForCategory is called which then triggers onSuccess/onError.
+    if (genres || selectedCategory) { // Fetch if genres are loaded OR if a category is selected (even if genres are still loading, for "All")
         fetchMoviesForCategory();
     }
   }, [selectedCategory, genres, fetchMoviesForCategory]);
@@ -130,12 +133,12 @@ const Index = () => {
             disabled={isLoadingMovies || isLoadingGenres}
           >
             <Shuffle size={20} className="mr-2" />
-            {isLoadingMovies ? 'Finding Movie...' : 'Get Random Movie'}
+            {isLoadingMovies && !currentMovie ? 'Finding Movie...' : 'Get Random Movie'}
           </Button>
         </div>
         
         <div className="w-full flex justify-center">
-          <MovieCard movie={currentMovie} isLoading={isLoadingMovies && !currentMovie} />
+          <MovieCard movie={currentMovie} isLoading={isLoadingMovies && !currentMovie && !isMoviesError} />
         </div>
       </main>
 
