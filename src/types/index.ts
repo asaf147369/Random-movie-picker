@@ -10,6 +10,7 @@ export interface Movie {
   genres?: { id: number; name: string }[]; // Changed from category_id and category_name
   posterUrl?: string; // Full URL for the movie poster
   year?: number; // Release year
+  vote_average?: number; // TMDB rating out of 10
 }
 
 // Category type for the filter component. "All" is a special case.

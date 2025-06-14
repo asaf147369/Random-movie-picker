@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Movie } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Star, ExternalLink } from "lucide-react";
 
 interface MovieCardProps {
   movie: Movie | null;
@@ -38,7 +38,6 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
     );
   }
 
-
   return (
     <Card className="w-full max-w-md bg-card border-border shadow-xl overflow-hidden transform transition-all duration-500 hover:scale-105">
       {movie.posterUrl ? (
@@ -49,9 +48,22 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
         </div>
       )}
       <CardHeader className="p-6">
-        <CardTitle className="text-3xl font-bold text-primary mb-2">{movie.title} {movie.year && `(${movie.year})`}</CardTitle>
+        <div className="flex justify-between items-start gap-4">
+          <CardTitle className="text-3xl font-bold text-primary mb-2">{movie.title} {movie.year && `(${movie.year})`}</CardTitle>
+          <a href={`https://www.themoviedb.org/movie/${movie.id}`} target="_blank" rel="noopener noreferrer" title="View on TMDB" className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 mt-1">
+            <ExternalLink size={24} />
+          </a>
+        </div>
+        
+        {movie.vote_average !== undefined && movie.vote_average > 0 && (
+            <div className="flex items-center gap-2 text-lg font-semibold text-amber-400 mb-2">
+                <Star size={20} className="fill-current" />
+                <span>{movie.vote_average.toFixed(1)} / 10</span>
+            </div>
+        )}
+
         {movie.genres && movie.genres.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2"> {/* Added mt-2 for spacing */}
+          <div className="flex flex-wrap gap-2">
             {movie.genres.map((genre) => (
               <Badge 
                 key={genre.id} 

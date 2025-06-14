@@ -23,6 +23,10 @@ interface TmdbMovie {
   popularity: number;
 }
 
+interface TmdbMovieDetail extends TmdbMovie {
+  genres: { id: number; name:string }[];
+}
+
 interface TmdbGenre {
   id: number;
   name: string;
@@ -58,7 +62,6 @@ async function getGenresMap(): Promise<Map<number, string>> {
   return new Map(genresCache.map(genre => [genre.id, genre.name]));
 }
 
-
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -77,6 +80,7 @@ serve(async (req: Request) => {
 
     let action: string | null = null;
     let genreIdParam: string | null = null;
+    let movieIdParam: string | null = null;
 
     if (req.method === "POST") {
         try {
@@ -86,9 +90,11 @@ serve(async (req: Request) => {
                 const params = new URLSearchParams(body.queryString);
                 action = params.get("action");
                 genreIdParam = params.get("genreId");
+                movieIdParam = params.get("movieId");
             } else {
                 action = body.action; // Fallback
                 genreIdParam = body.genreId; // Fallback
+                movieIdParam = body.movieId; // Fallback
             }
         } catch (e) {
             console.warn("Could not parse JSON body for POST request or body.queryString not found, trying URL params.", e.message);
@@ -99,7 +105,8 @@ serve(async (req: Request) => {
         const url = new URL(req.url);
         action = url.searchParams.get("action");
         genreIdParam = url.searchParams.get("genreId");
-        console.log(`Action from URL: ${action}, GenreID from URL: ${genreIdParam}`);
+        movieIdParam = url.searchParams.get("movieId");
+        console.log(`Action from URL: ${action}, GenreID from URL: ${genreIdParam}, MovieID from URL: ${movieIdParam}`);
     }
 
 
@@ -109,6 +116,39 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify(genresCache || []), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    } else if (action === "getMovieById") {
+        console.log(`Action: getMovieById, MovieID: ${movieIdParam}`);
+        if (!movieIdParam) {
+            return new Response(JSON.stringify({ error: "movieId is required" }), {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
+        
+        const tmdbUrl = `${TMDB_BASE_URL}/movie/${movieIdParam}?api_key=${TMDB_API_KEY}&language=en-US`;
+        const response = await fetch(tmdbUrl);
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Failed to fetch movie by ID from TMDB", response.status, errorBody);
+            throw new Error(`Failed to fetch movie by ID from TMDB: ${response.statusText}. Details: ${errorBody}`);
+        }
+
+        const movieData: TmdbMovieDetail = await response.json();
+
+        const formattedMovie = {
+            id: movieData.id,
+            title: movieData.title,
+            description: movieData.overview,
+            posterUrl: movieData.poster_path ? `${TMDB_IMAGE_BASE_URL}${movieData.poster_path}` : undefined,
+            year: movieData.release_date ? parseInt(movieData.release_date.split("-")[0]) : undefined,
+            genres: movieData.genres, // Already in the right format
+            vote_average: movieData.vote_average,
+        };
+
+        return new Response(JSON.stringify(formattedMovie), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     } else if (action === "getMovies") {
       console.log(`Action: getMovies, GenreID: ${genreIdParam}`);
       
@@ -178,7 +218,8 @@ serve(async (req: Request) => {
           description: movie.overview,
           posterUrl: movie.poster_path ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : undefined,
           year: movie.release_date ? parseInt(movie.release_date.split("-")[0]) : undefined,
-          genres: movieGenres, // Updated to return all genres
+          genres: movieGenres,
+          vote_average: movie.vote_average,
         };
       }).filter(movie => movie.description && movie.title); 
 

@@ -5,23 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Movie, TmdbGenre, AppCategory, SelectedCategoryType } from '@/types';
 import { Shuffle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { QueryFunctionContext, QueryKey, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryFunctionContext, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
+import { useSearchParams } from 'react-router-dom';
 
 // Define specific QueryKey types for better type safety and compatibility with useQuery
 type GenresQueryKey = readonly ['tmdb', 'getGenres', undefined];
 type MoviesQueryKey = readonly ['tmdb', 'getMovies', SelectedCategoryType];
+type MovieByIdQueryKey = readonly ['tmdb', 'getMovieById', string | null];
 // Create a union type for the queryKey parameter of fetchTmdbData
-type AppQueryKey = GenresQueryKey | MoviesQueryKey;
+type AppQueryKey = GenresQueryKey | MoviesQueryKey | MovieByIdQueryKey;
 
 // Updated fetchTmdbData function
 const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
   const { queryKey } = context;
-  const [_key, action, param] = queryKey; // param is SelectedCategoryType for 'getMovies', undefined for 'getGenres'
+  const [_key, action, param] = queryKey;
   
   let queryString = `action=${action}`;
-  if (action === "getMovies" && typeof param === 'number') {
-    queryString += `&genreId=${param}`;
+  if (action === "getMovies") {
+    if (typeof param === 'number') {
+      queryString += `&genreId=${param}`;
+    }
+  } else if (action === "getMovieById" && typeof param === 'string') {
+    queryString += `&movieId=${param}`;
   }
 
   const { data, error } = await supabase.functions.invoke('get-tmdb-data', {
@@ -42,8 +48,9 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>("All");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const movieIdFromUrl = searchParams.get('movie');
   
-  // New state variables
   const [moviesShownFromCurrentPageCount, setMoviesShownFromCurrentPageCount] = useState(0);
   const [shownMovieIdsFromCurrentPage, setShownMovieIdsFromCurrentPage] = useState<number[]>([]);
 
@@ -63,6 +70,27 @@ const Index = () => {
     return genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
   }, [genres]);
 
+  const { data: movieFromUrl, isLoading: isLoadingMovieFromUrl, isError: isMovieFromUrlError, error: movieFromUrlError } = useQuery<Movie, Error, Movie, MovieByIdQueryKey>({
+    queryKey: ['tmdb', 'getMovieById', movieIdFromUrl],
+    queryFn: fetchTmdbData,
+    enabled: !!movieIdFromUrl,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (movieFromUrl) {
+      setCurrentMovie(movieFromUrl);
+    }
+  }, [movieFromUrl]);
+
+  useEffect(() => {
+    if (isMovieFromUrlError) {
+      toast.error(`Movie not found or failed to load. Please try another!`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [isMovieFromUrlError, movieFromUrlError, setSearchParams]);
+
   const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useQuery<Movie[], Error, Movie[], MoviesQueryKey>({
     queryKey: ['tmdb', 'getMovies', selectedCategory],
     queryFn: fetchTmdbData,
@@ -70,29 +98,33 @@ const Index = () => {
   });
   
   useEffect(() => {
-    if (selectedCategory) {
+    if (selectedCategory && !movieIdFromUrl) {
         console.log(`Category changed to: ${selectedCategory}. Fetching movies.`);
-        // Reset counters immediately when category changes or initial fetch for category happens
-        // This is also handled in handleSelectCategory for explicit category changes
         setMoviesShownFromCurrentPageCount(0);
         setShownMovieIdsFromCurrentPage([]);
         fetchMoviesForCategory();
     }
-  }, [selectedCategory, fetchMoviesForCategory]);
+  }, [selectedCategory, fetchMoviesForCategory, movieIdFromUrl]);
 
   useEffect(() => {
-    if (isLoadingMovies) {
+    if (currentMovie && String(currentMovie.id) !== movieIdFromUrl) {
+      setSearchParams({ movie: String(currentMovie.id) }, { replace: true });
+    }
+  }, [currentMovie, movieIdFromUrl, setSearchParams]);
+
+  useEffect(() => {
+    if (isLoadingMovies || isLoadingMovieFromUrl) {
         console.log("Movies are loading...");
         return; 
     }
-
+    
     if (isMoviesError && moviesError) {
       console.error("Error fetching movies:", moviesError);
       setCurrentMovie(null);
       setMoviesShownFromCurrentPageCount(0); // Reset on error
       setShownMovieIdsFromCurrentPage([]);   // Reset on error
       toast.error(`Failed to fetch movies: ${moviesError.message}`);
-    } else if (movies !== undefined) { 
+    } else if (movies !== undefined && !movieFromUrl) { 
       console.log("Movies data received:", movies);
       setMoviesShownFromCurrentPageCount(0); // Reset counter for new batch
       setShownMovieIdsFromCurrentPage([]);   // Reset shown IDs for new batch
@@ -114,11 +146,18 @@ const Index = () => {
         }
       }
     }
-  }, [movies, isLoadingMovies, isMoviesError, moviesError, selectedCategory, displayCategories]);
+  }, [movies, isLoadingMovies, isMoviesError, moviesError, selectedCategory, displayCategories, movieFromUrl, isLoadingMovieFromUrl]);
 
 
   const handleGetRandomMovie = () => {
     console.log("Handle get random movie clicked.");
+
+    // If a movie was loaded from URL, this button should now fetch a random list.
+    if (movieIdFromUrl) {
+        setSearchParams({}, {replace: true});
+        fetchMoviesForCategory();
+        return;
+    }
 
     if (isLoadingMovies || !movies) {
       console.log("Movies loading or no data, re-fetching.");
@@ -151,16 +190,21 @@ const Index = () => {
 
   const handleSelectCategory = (categoryId: SelectedCategoryType) => {
     console.log("Category selected:", categoryId);
+    if (movieIdFromUrl) {
+        setSearchParams({}, { replace: true });
+    }
     setCurrentMovie(null); 
     setMoviesShownFromCurrentPageCount(0); // Reset for new category
     setShownMovieIdsFromCurrentPage([]);   // Reset for new category
     setSelectedCategory(categoryId);
     // fetchMoviesForCategory will be called by the useEffect watching selectedCategory
   };
+
+  const isLoading = isLoadingMovies || isLoadingGenres || isLoadingMovieFromUrl;
   
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
-      <header className="mb-10 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
+      <header className="w-full mt-8 mb-10 text-center">
         <h1 className="text-5xl font-extrabold mb-3 tracking-tight" style={{ color: 'hsl(var(--app-accent))' }}>
           Random Movie Night
         </h1>
@@ -180,19 +224,19 @@ const Index = () => {
           <Button 
             onClick={handleGetRandomMovie} 
             className="bg-[hsl(var(--app-accent))] text-accent-foreground hover:bg-[hsl(var(--app-accent))]/90 px-8 py-6 text-lg font-semibold shadow-lg transform transition-transform duration-150 hover:scale-105"
-            disabled={isLoadingMovies || isLoadingGenres}
+            disabled={isLoading}
           >
             <Shuffle size={20} className="mr-2" />
-            {(isLoadingMovies && !currentMovie) ? 'Finding Movie...' : 'Get Another Movie'}
+            {isLoading && !currentMovie ? 'Finding Movie...' : 'Get Another Movie'}
           </Button>
         </div>
         
         <div className="w-full flex justify-center">
-          <MovieCard movie={currentMovie} isLoading={(isLoadingMovies && !currentMovie && !isMoviesError)} />
+          <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie && !isMovieFromUrlError} />
         </div>
       </main>
 
-      <footer className="mt-16 text-center text-sm text-muted-foreground">
+      <footer className="w-full mb-8 mt-16 text-center text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} Movie Picker. All rights reserved (sort of).</p>
         <p>Powered by Randomness, React, and The Movie Database API.</p>
       </footer>
