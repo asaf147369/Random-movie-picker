@@ -1,7 +1,8 @@
-import React from 'react'; // Added React import
+
+import React from 'react';
 import { Movie } from "@/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming Card components are from shadcn/ui
-import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface MovieCardProps {
   movie: Movie | null;
@@ -31,11 +32,12 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
           <CardTitle className="text-2xl font-semibold text-foreground">No Movie Found</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Try a different category or click "Get Random Movie" again!</p>
+          <p className="text-muted-foreground">Try a different category or click "Get Another Movie" again!</p>
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <Card className="w-full max-w-md bg-card border-border shadow-xl overflow-hidden transform transition-all duration-500 hover:scale-105">
@@ -48,8 +50,18 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
       )}
       <CardHeader className="p-6">
         <CardTitle className="text-3xl font-bold text-primary mb-2">{movie.title} {movie.year && `(${movie.year})`}</CardTitle>
-        {movie.category_name && (
-          <Badge variant="secondary" className="bg-[hsl(var(--app-accent))] text-accent-foreground">{movie.category_name}</Badge>
+        {movie.genres && movie.genres.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2"> {/* Added mt-2 for spacing */}
+            {movie.genres.map((genre) => (
+              <Badge 
+                key={genre.id} 
+                variant="secondary" 
+                className="bg-[hsl(var(--app-accent))] text-accent-foreground"
+              >
+                {genre.name}
+              </Badge>
+            ))}
+          </div>
         )}
       </CardHeader>
       <CardContent className="p-6 pt-0">

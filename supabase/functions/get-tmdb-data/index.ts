@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Deno Deploy
 
@@ -169,8 +168,9 @@ serve(async (req: Request) => {
       const genresMap = await getGenresMap();
 
       const movies = tmdbMovies.map((movie) => {
-        const firstGenreId = movie.genre_ids && movie.genre_ids.length > 0 ? movie.genre_ids[0] : undefined;
-        const categoryName = firstGenreId ? (genresMap.get(firstGenreId) || "Unknown") : "General";
+        const movieGenres = movie.genre_ids && movie.genre_ids.length > 0
+          ? movie.genre_ids.map(id => ({ id, name: genresMap.get(id) || "Unknown Genre" }))
+          : [];
         
         return {
           id: movie.id,
@@ -178,8 +178,7 @@ serve(async (req: Request) => {
           description: movie.overview,
           posterUrl: movie.poster_path ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : undefined,
           year: movie.release_date ? parseInt(movie.release_date.split("-")[0]) : undefined,
-          category_id: firstGenreId,
-          category_name: categoryName,
+          genres: movieGenres, // Updated to return all genres
         };
       }).filter(movie => movie.description && movie.title); 
 
@@ -202,4 +201,3 @@ serve(async (req: Request) => {
     });
   }
 });
-

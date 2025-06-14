@@ -1,4 +1,3 @@
-
 export interface TmdbGenre {
   id: number;
   name: string;
@@ -8,8 +7,7 @@ export interface Movie {
   id: number; // TMDB movie ID
   title: string;
   description: string;
-  category_id?: number; 
-  category_name?: string; 
+  genres?: { id: number; name: string }[]; // Changed from category_id and category_name
   posterUrl?: string; // Full URL for the movie poster
   year?: number; // Release year
 }
