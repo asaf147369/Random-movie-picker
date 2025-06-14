@@ -1,4 +1,4 @@
-
+import React from 'react'; // Added React import
 import { Movie } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming Card components are from shadcn/ui
 import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
