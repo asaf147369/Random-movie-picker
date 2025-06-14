@@ -82,6 +82,7 @@ serve(async (req: Request) => {
     let action: string | null = null;
     let genreIdsParam: string | null = null;
     let movieIdParam: string | null = null;
+    let ratingGteParam: string | null = null;
 
     if (req.method === "POST") {
         try {
@@ -92,10 +93,12 @@ serve(async (req: Request) => {
                 action = params.get("action");
                 genreIdsParam = params.get("genreIds");
                 movieIdParam = params.get("movieId");
+                ratingGteParam = params.get("ratingGte");
             } else {
                 action = body.action; // Fallback
                 genreIdsParam = body.genreIds; // Fallback
                 movieIdParam = body.movieId; // Fallback
+                ratingGteParam = body.ratingGte; // Fallback
             }
         } catch (e) {
             console.warn("Could not parse JSON body for POST request or body.queryString not found, trying URL params.", e.message);
@@ -107,7 +110,8 @@ serve(async (req: Request) => {
         action = url.searchParams.get("action");
         genreIdsParam = url.searchParams.get("genreIds");
         movieIdParam = url.searchParams.get("movieId");
-        console.log(`Action from URL: ${action}, GenreIDs from URL: ${genreIdsParam}, MovieID from URL: ${movieIdParam}`);
+        ratingGteParam = url.searchParams.get("ratingGte");
+        console.log(`Action from URL: ${action}, GenreIDs from URL: ${genreIdsParam}, MovieID from URL: ${movieIdParam}, RatingGTE from URL: ${ratingGteParam}`);
     }
 
 
@@ -151,12 +155,15 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     } else if (action === "getMovies") {
-      console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}`);
+      console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}, RatingGTE: ${ratingGteParam}`);
       
       // Step 1: Fetch page 1 to get total_pages
       let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=1`;
       if (genreIdsParam) {
         initialDiscoverUrl += `&with_genres=${genreIdsParam}`;
+      }
+      if (ratingGteParam) {
+        initialDiscoverUrl += `&vote_average.gte=${ratingGteParam}`;
       }
       console.log("Initial discover URL:", initialDiscoverUrl);
 
@@ -187,6 +194,9 @@ serve(async (req: Request) => {
       let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=${randomPage}`;
       if (genreIdsParam) {
         tmdbUrl += `&with_genres=${genreIdsParam}`;
+      }
+      if (ratingGteParam) {
+        tmdbUrl += `&vote_average.gte=${ratingGteParam}`;
       }
       console.log("Fetching movies from random page URL:", tmdbUrl);
 

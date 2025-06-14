@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useGenres, useMovies } from './useTmdb';
@@ -12,7 +11,7 @@ export const useMoviePicker = () => {
 
   // Data fetching hooks
   const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useGenres();
-  const { isFetching: isFetchingMovies, refetch: fetchMoviesForCategory } = useMovies(selectedCategory);
+  const { isFetching: isFetchingMovies, refetch: fetchMoviesForCategory } = useMovies(selectedCategory, ratingThreshold);
 
   const displayCategories: AppCategory[] = useMemo(() => {
     return genres ? [...genres] : [];
@@ -26,7 +25,7 @@ export const useMoviePicker = () => {
   }, [isGenresError, genresError]);
   
   const handleGetRandomMovie = async () => {
-    console.log("Handle get random movie clicked. Attempting to find a suitable movie...");
+    console.log("Handle get random movie clicked. Attempting to find a suitable movie with current filters...");
     setIsFindingMovie(true);
     setCurrentMovie(null); // Clear movie to show loader
 
@@ -39,14 +38,11 @@ export const useMoviePicker = () => {
 
       if (queryResult.isSuccess && queryResult.data) {
         const fetchedMovies = queryResult.data;
-        console.log(`Fetched ${fetchedMovies.length} movies in attempt ${attempt}:`, fetchedMovies);
+        console.log(`Fetched ${fetchedMovies.length} movies matching filters in attempt ${attempt}.`);
         
-        const filteredMovies = fetchedMovies.filter(m => m.vote_average !== undefined && m.vote_average >= ratingThreshold);
-        console.log(`Found ${filteredMovies.length} movies matching rating >= ${ratingThreshold.toFixed(1)}`);
-
-        if (filteredMovies.length > 0) {
-          const randomIndex = Math.floor(Math.random() * filteredMovies.length);
-          foundMovie = filteredMovies[randomIndex];
+        if (fetchedMovies.length > 0) {
+          const randomIndex = Math.floor(Math.random() * fetchedMovies.length);
+          foundMovie = fetchedMovies[randomIndex];
           break; // Exit loop if a movie is found
         }
       } else if (queryResult.isError) {
