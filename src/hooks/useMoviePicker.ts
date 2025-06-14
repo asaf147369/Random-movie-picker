@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -94,8 +93,8 @@ export const useMoviePicker = () => {
   const handleGetRandomMovie = () => {
     console.log("Handle get random movie clicked.");
     if (movieIdFromUrl) {
+        setCurrentMovie(null);
         setSearchParams({}, {replace: true});
-        fetchMoviesForCategory();
         return;
     }
 
