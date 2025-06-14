@@ -18,6 +18,8 @@ const Index = () => {
     handleApplyFilter,
     handleRatingChange,
     hasSearched,
+    onlyThisYear,
+    handleOnlyThisYearChange,
   } = useMoviePicker();
 
   return (
@@ -37,6 +39,8 @@ const Index = () => {
               isLoading={isLoading}
               isLoadingGenres={isLoadingGenres}
               currentMovie={currentMovie}
+              onlyThisYear={onlyThisYear}
+              handleOnlyThisYearChange={handleOnlyThisYearChange}
             />
           </div>
           <div className="lg:col-span-2 w-full flex justify-center">

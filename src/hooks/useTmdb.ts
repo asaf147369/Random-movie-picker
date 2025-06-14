@@ -5,7 +5,7 @@ import { Movie, TmdbGenre, SelectedCategoryType } from '@/types';
 
 // Define specific QueryKey types for better type safety
 type GenresQueryKey = readonly ['tmdb', 'getGenres', undefined];
-type MoviesQueryKey = readonly ['tmdb', 'getMovies', SelectedCategoryType, number];
+type MoviesQueryKey = readonly ['tmdb', 'getMovies', SelectedCategoryType, number, boolean];
 type AppQueryKey = GenresQueryKey | MoviesQueryKey;
 
 // Centralized data fetching function
@@ -15,12 +15,15 @@ const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
   
   let queryString = `action=${action}`;
   if (action === "getMovies") {
-    const [genreIds, ratingThreshold] = params as [SelectedCategoryType, number];
+    const [genreIds, ratingThreshold, onlyThisYear] = params as [SelectedCategoryType, number, boolean];
     if (genreIds.length > 0) {
       queryString += `&genreIds=${genreIds.join(',')}`;
     }
     if (ratingThreshold > 0) {
       queryString += `&ratingGte=${ratingThreshold}`;
+    }
+    if (onlyThisYear) {
+      queryString += `&year=${new Date().getFullYear()}`;
     }
   }
 
@@ -45,9 +48,9 @@ export const useGenres = () => {
 };
 
 // Hook to fetch a list of movies by category, with manual refetching
-export const useMovies = (selectedCategory: SelectedCategoryType, ratingThreshold: number) => {
+export const useMovies = (selectedCategory: SelectedCategoryType, ratingThreshold: number, onlyThisYear: boolean) => {
     return useQuery<Movie[], Error, Movie[], MoviesQueryKey>({
-        queryKey: ['tmdb', 'getMovies', selectedCategory, ratingThreshold],
+        queryKey: ['tmdb', 'getMovies', selectedCategory, ratingThreshold, onlyThisYear],
         queryFn: fetchTmdbData,
         enabled: false, // Will be triggered manually
     });

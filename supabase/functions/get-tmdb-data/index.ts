@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Deno Deploy
 
@@ -83,6 +82,7 @@ serve(async (req: Request) => {
     let genreIdsParam: string | null = null;
     let movieIdParam: string | null = null;
     let ratingGteParam: string | null = null;
+    let yearParam: string | null = null;
 
     if (req.method === "POST") {
         try {
@@ -94,11 +94,13 @@ serve(async (req: Request) => {
                 genreIdsParam = params.get("genreIds");
                 movieIdParam = params.get("movieId");
                 ratingGteParam = params.get("ratingGte");
+                yearParam = params.get("year");
             } else {
                 action = body.action; // Fallback
                 genreIdsParam = body.genreIds; // Fallback
                 movieIdParam = body.movieId; // Fallback
                 ratingGteParam = body.ratingGte; // Fallback
+                yearParam = body.year; // Fallback
             }
         } catch (e) {
             console.warn("Could not parse JSON body for POST request or body.queryString not found, trying URL params.", e.message);
@@ -109,9 +111,10 @@ serve(async (req: Request) => {
         const url = new URL(req.url);
         action = url.searchParams.get("action");
         genreIdsParam = url.searchParams.get("genreIds");
-        movieIdParam = url.searchParams.get("movieId");
+        movieIdParam = url.search_params.get("movieId");
         ratingGteParam = url.searchParams.get("ratingGte");
-        console.log(`Action from URL: ${action}, GenreIDs from URL: ${genreIdsParam}, MovieID from URL: ${movieIdParam}, RatingGTE from URL: ${ratingGteParam}`);
+        yearParam = url.searchParams.get("year");
+        console.log(`Action from URL: ${action}, GenreIDs from URL: ${genreIdsParam}, MovieID from URL: ${movieIdParam}, RatingGTE from URL: ${ratingGteParam}, Year from URL: ${yearParam}`);
     }
 
 
@@ -155,15 +158,18 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     } else if (action === "getMovies") {
-      console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}, RatingGTE: ${ratingGteParam}`);
+      console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}, RatingGTE: ${ratingGteParam}, Year: ${yearParam}`);
       
       // Step 1: Fetch page 1 to get total_pages
-      let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=1`;
+      let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=500&page=1`;
       if (genreIdsParam) {
         initialDiscoverUrl += `&with_genres=${genreIdsParam}`;
       }
       if (ratingGteParam) {
         initialDiscoverUrl += `&vote_average.gte=${ratingGteParam}`;
+      }
+      if (yearParam) {
+        initialDiscoverUrl += `&primary_release_year=${yearParam}`;
       }
       console.log("Initial discover URL:", initialDiscoverUrl);
 
@@ -191,12 +197,15 @@ serve(async (req: Request) => {
       console.log(`Selected random page: ${randomPage} out of ${maxPagesToConsider} (actual total: ${totalPages})`);
 
       // Step 3: Fetch movies from the random page
-      let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=${randomPage}`;
+      let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=500&page=${randomPage}`;
       if (genreIdsParam) {
         tmdbUrl += `&with_genres=${genreIdsParam}`;
       }
       if (ratingGteParam) {
         tmdbUrl += `&vote_average.gte=${ratingGteParam}`;
+      }
+      if (yearParam) {
+        tmdbUrl += `&primary_release_year=${yearParam}`;
       }
       console.log("Fetching movies from random page URL:", tmdbUrl);
 

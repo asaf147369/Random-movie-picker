@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AppCategory, SelectedCategoryType, Movie } from '@/types';
 import { Shuffle } from 'lucide-react';
 import RatingFilter from '@/components/RatingFilter';
+import ThisYearFilter from '@/components/ThisYearFilter';
 
 interface MovieControlsProps {
   categories: AppCategory[];
@@ -16,6 +17,8 @@ interface MovieControlsProps {
   isLoading: boolean;
   isLoadingGenres: boolean;
   currentMovie: Movie | null;
+  onlyThisYear: boolean;
+  handleOnlyThisYearChange: (checked: boolean) => void;
 }
 
 const MovieControls: React.FC<MovieControlsProps> = ({
@@ -28,6 +31,8 @@ const MovieControls: React.FC<MovieControlsProps> = ({
   isLoading,
   isLoadingGenres,
   currentMovie,
+  onlyThisYear,
+  handleOnlyThisYearChange,
 }) => {
   return (
     <div className="w-full flex flex-col items-center justify-center gap-6">
@@ -40,6 +45,11 @@ const MovieControls: React.FC<MovieControlsProps> = ({
       <RatingFilter 
         value={ratingThreshold} 
         onChange={onRatingChange}
+        disabled={isLoading}
+      />
+      <ThisYearFilter
+        checked={onlyThisYear}
+        onCheckedChange={handleOnlyThisYearChange}
         disabled={isLoading}
       />
       <Button
