@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useGenres, useMovies } from './useTmdb';
@@ -8,13 +7,12 @@ export const useMoviePicker = () => {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>([]);
   const [ratingThreshold, setRatingThreshold] = useState<number>(0);
-  const [onlyThisYear, setOnlyThisYear] = useState<boolean>(false);
   const [isFindingMovie, setIsFindingMovie] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   // Data fetching hooks
   const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useGenres();
-  const { isFetching: isFetchingMovies, refetch: fetchMoviesForCategory } = useMovies(selectedCategory, ratingThreshold, onlyThisYear);
+  const { isFetching: isFetchingMovies, refetch: fetchMoviesForCategory } = useMovies(selectedCategory, ratingThreshold);
 
   const displayCategories: AppCategory[] = useMemo(() => {
     return genres ? [...genres] : [];
@@ -80,11 +78,6 @@ export const useMoviePicker = () => {
   const handleRatingChange = (value: number) => {
     setRatingThreshold(value);
   }
-
-  const handleOnlyThisYearChange = (checked: boolean) => {
-    console.log("Toggling 'Only This Year' filter to:", checked);
-    setOnlyThisYear(checked);
-  };
   
   const isLoading = isFetchingMovies || isFindingMovie;
 
@@ -99,7 +92,5 @@ export const useMoviePicker = () => {
     handleApplyFilter,
     handleRatingChange,
     hasSearched,
-    onlyThisYear,
-    handleOnlyThisYearChange,
   };
 };
