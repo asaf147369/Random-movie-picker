@@ -160,8 +160,12 @@ serve(async (req: Request) => {
     } else if (action === "getMovies") {
       console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}, RatingGTE: ${ratingGteParam}, Year: ${yearParam}`);
       
+      const isCurrentYear = yearParam ? parseInt(yearParam, 10) === new Date().getFullYear() : false;
+      const voteCountGte = isCurrentYear ? 100 : 500;
+      console.log(`Using vote_count.gte=${voteCountGte} (isCurrentYear: ${isCurrentYear})`);
+      
       // Step 1: Fetch page 1 to get total_pages
-      let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=500&page=1`;
+      let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=${voteCountGte}&page=1`;
       if (genreIdsParam) {
         initialDiscoverUrl += `&with_genres=${genreIdsParam}`;
       }
@@ -197,7 +201,7 @@ serve(async (req: Request) => {
       console.log(`Selected random page: ${randomPage} out of ${maxPagesToConsider} (actual total: ${totalPages})`);
 
       // Step 3: Fetch movies from the random page
-      let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=500&page=${randomPage}`;
+      let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=${voteCountGte}&page=${randomPage}`;
       if (genreIdsParam) {
         tmdbUrl += `&with_genres=${genreIdsParam}`;
       }
