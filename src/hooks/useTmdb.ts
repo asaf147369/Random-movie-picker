@@ -1,4 +1,3 @@
-
 import { useQuery, QueryFunctionContext } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Movie, TmdbGenre, SelectedCategoryType } from '@/types';
@@ -6,8 +5,7 @@ import { Movie, TmdbGenre, SelectedCategoryType } from '@/types';
 // Define specific QueryKey types for better type safety
 type GenresQueryKey = readonly ['tmdb', 'getGenres', undefined];
 type MoviesQueryKey = readonly ['tmdb', 'getMovies', SelectedCategoryType];
-type MovieByIdQueryKey = readonly ['tmdb', 'getMovieById', string | null];
-type AppQueryKey = GenresQueryKey | MoviesQueryKey | MovieByIdQueryKey;
+type AppQueryKey = GenresQueryKey | MoviesQueryKey;
 
 // Centralized data fetching function
 const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
@@ -20,8 +18,6 @@ const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
     if (genreIds.length > 0) {
       queryString += `&genreIds=${genreIds.join(',')}`;
     }
-  } else if (action === "getMovieById" && typeof param === 'string') {
-    queryString += `&movieId=${param}`;
   }
 
   const { data, error } = await supabase.functions.invoke('get-tmdb-data', {
@@ -50,16 +46,5 @@ export const useMovies = (selectedCategory: SelectedCategoryType) => {
         queryKey: ['tmdb', 'getMovies', selectedCategory],
         queryFn: fetchTmdbData,
         enabled: false, // Will be triggered manually
-    });
-};
-
-// Hook to fetch a single movie by its ID
-export const useMovieById = (movieId: string | null) => {
-    return useQuery<Movie, Error, Movie, MovieByIdQueryKey>({
-        queryKey: ['tmdb', 'getMovieById', movieId],
-        queryFn: fetchTmdbData,
-        enabled: !!movieId,
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        retry: false,
     });
 };

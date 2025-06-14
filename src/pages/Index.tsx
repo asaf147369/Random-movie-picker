@@ -10,23 +10,26 @@ const Index = () => {
   const {
     currentMovie,
     selectedCategory,
+    ratingThreshold,
     displayCategories,
     isLoading,
     isLoadingGenres,
-    isMovieFromUrlError,
     handleGetRandomMovie,
     handleApplyFilter,
+    handleRatingChange,
   } = useMoviePicker();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
       <Header />
 
-      <main className="w-full max-w-4xl flex flex-col items-center space-y-8">
+      <main className="w-full max-w-5xl flex flex-col items-center space-y-8">
         <MovieControls
           categories={displayCategories}
           selectedCategory={selectedCategory}
+          ratingThreshold={ratingThreshold}
           onApplyFilter={handleApplyFilter}
+          onRatingChange={handleRatingChange}
           onGetRandomMovie={handleGetRandomMovie}
           isLoading={isLoading}
           isLoadingGenres={isLoadingGenres}
@@ -34,7 +37,7 @@ const Index = () => {
         />
         
         <div className="w-full flex justify-center">
-          <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie && !isMovieFromUrlError} />
+          <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie} />
         </div>
       </main>
 

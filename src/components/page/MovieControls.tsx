@@ -4,11 +4,14 @@ import CategoryFilter from '@/components/CategoryFilter';
 import { Button } from '@/components/ui/button';
 import { AppCategory, SelectedCategoryType, Movie } from '@/types';
 import { Shuffle } from 'lucide-react';
+import RatingFilter from '@/components/RatingFilter';
 
 interface MovieControlsProps {
   categories: AppCategory[];
   selectedCategory: SelectedCategoryType;
+  ratingThreshold: number;
   onApplyFilter: (categoryIds: number[]) => void;
+  onRatingChange: (value: number) => void;
   onGetRandomMovie: () => void;
   isLoading: boolean;
   isLoadingGenres: boolean;
@@ -18,19 +21,26 @@ interface MovieControlsProps {
 const MovieControls: React.FC<MovieControlsProps> = ({
   categories,
   selectedCategory,
+  ratingThreshold,
   onApplyFilter,
+  onRatingChange,
   onGetRandomMovie,
   isLoading,
   isLoadingGenres,
   currentMovie,
 }) => {
   return (
-    <div className="w-full md:w-auto flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-6">
+    <div className="w-full flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
       <CategoryFilter
         categories={categories}
         selectedCategory={selectedCategory}
         onApplyFilter={onApplyFilter}
         isLoading={isLoadingGenres}
+      />
+      <RatingFilter 
+        value={ratingThreshold} 
+        onChange={onRatingChange}
+        disabled={isLoading}
       />
       <Button
         onClick={onGetRandomMovie}
