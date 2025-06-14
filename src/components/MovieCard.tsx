@@ -1,21 +1,37 @@
 
 import { Movie } from "@/types";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component from shadcn/ui
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming Card components are from shadcn/ui
+import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
 
 interface MovieCardProps {
   movie: Movie | null;
+  isLoading?: boolean;
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
+const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-md bg-card border-border shadow-xl p-6 text-center animate-pulse">
+        <CardHeader>
+          <CardTitle className="text-2xl font-semibold text-foreground">Loading Movie...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72 bg-muted rounded-md mb-4"></div>
+          <div className="h-6 bg-muted rounded w-3/4 mx-auto mb-2"></div>
+          <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!movie) {
     return (
       <Card className="w-full max-w-md bg-card border-border shadow-xl p-6 text-center">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-foreground">No Movie Selected</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-foreground">No Movie Found</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Click the button to get a random movie suggestion!</p>
+          <p className="text-muted-foreground">Try a different category or click "Get Random Movie" again!</p>
         </CardContent>
       </Card>
     );
@@ -32,7 +48,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
       )}
       <CardHeader className="p-6">
         <CardTitle className="text-3xl font-bold text-primary mb-2">{movie.title} {movie.year && `(${movie.year})`}</CardTitle>
-        <Badge variant="secondary" className="bg-[hsl(var(--app-accent))] text-accent-foreground">{movie.category}</Badge>
+        {movie.category_name && (
+          <Badge variant="secondary" className="bg-[hsl(var(--app-accent))] text-accent-foreground">{movie.category_name}</Badge>
+        )}
       </CardHeader>
       <CardContent className="p-6 pt-0">
         <CardDescription className="text-foreground/80 leading-relaxed">

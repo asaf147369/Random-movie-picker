@@ -1,1 +1,5 @@
+
 project_id = "wlsawxjydgnbrxoimfey"
+
+[functions.get-tmdb-data]
+  verify_jwt = false # Movies are public, so JWT verification is not needed for this function

@@ -1,11 +1,22 @@
 
-export interface Movie {
+export interface TmdbGenre {
   id: number;
-  title: string;
-  description: string;
-  category: string;
-  posterUrl?: string; // Optional: URL for the movie poster
-  year?: number;
+  name: string;
 }
 
-export type Category = "All" | "Action" | "Comedy" | "Drama" | "Sci-Fi" | "Horror" | "Romance";
+export interface Movie {
+  id: number; // TMDB movie ID
+  title: string;
+  description: string;
+  category_id?: number; 
+  category_name?: string; 
+  posterUrl?: string; // Full URL for the movie poster
+  year?: number; // Release year
+}
+
+// Category type for the filter component. "All" is a special case.
+// The CategoryFilter will receive an array of TmdbGenre, plus a synthetic "All" entry.
+export type AppCategory = TmdbGenre | { id: "All"; name: "All" };
+
+// This specific type will be used by the filter state and callbacks
+export type SelectedCategoryType = number | "All";
