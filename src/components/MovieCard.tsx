@@ -41,7 +41,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
   return (
     <Card className="w-full max-w-md bg-card border-border shadow-xl overflow-hidden transform transition-all duration-500 hover:scale-105">
       {movie.posterUrl ? (
-        <img src={movie.posterUrl} alt={movie.title} className="w-full h-72 object-cover" />
+        <div className="w-full h-72 bg-black">
+          <img src={movie.posterUrl} alt={movie.title} className="w-full h-full object-contain" />
+        </div>
       ) : (
         <div className="w-full h-72 bg-muted flex items-center justify-center">
           <p className="text-muted-foreground">No Poster Available</p>
