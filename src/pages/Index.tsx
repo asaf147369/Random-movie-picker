@@ -25,7 +25,7 @@ const Index = () => {
 
       <main className="w-full max-w-7xl mx-auto flex-grow p-4 sm:p-8">
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-1 w-full lg:sticky lg:top-8">
+          <div className="lg:col-span-1 w-full sticky top-8 z-10 bg-background">
             <MovieControls
               categories={displayCategories}
               selectedCategory={selectedCategory}
