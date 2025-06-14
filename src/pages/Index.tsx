@@ -20,24 +20,19 @@ const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
   const [_key, action, param] = queryKey; // param is SelectedCategoryType for 'getMovies', undefined for 'getGenres'
   
   let queryString = `action=${action}`;
-  // Only add genreId if it's a specific numeric genre for 'getMovies'
-  // If param is "All" or undefined for 'getMovies', no genreId is added.
-  // The edge function handles 'no genreId' as fetching popular/all movies.
   if (action === "getMovies" && typeof param === 'number') {
     queryString += `&genreId=${param}`;
   }
 
-  // Supabase function invocation remains the same
   const { data, error } = await supabase.functions.invoke('get-tmdb-data', {
     body: { queryString },
   });
 
   if (error) {
     console.error(`Error fetching ${action}:`, error);
-    toast.error(`Failed to fetch ${action === 'getGenres' ? 'categories' : 'movies'}. ${error.message}`);
+    // Toast for error is handled in useQuery's onError or useEffect for more specific context
     throw new Error(error.message);
   }
-  // 'data' from invoke is 'any'. useQuery's TData generic will type it for the consumer.
   return data;
 };
 
@@ -46,67 +41,93 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>("All");
+  
+  const displayCategories: AppCategory[] = React.useMemo(() => {
+    const genresFromQuery = queryClient.getQueryData<TmdbGenre[]>(['tmdb', 'getGenres', undefined]);
+    return genresFromQuery ? [{ id: "All", name: "All" }, ...genresFromQuery] : [{ id: "All", name: "All" }];
+  }, [queryClient]);
 
-  // Updated useQuery for genres with explicit generic arguments
-  // useQuery<TQueryFnData, TError, TData, TQueryKey>
-  // TQueryFnData is 'any' because fetchTmdbData returns supabase.functions.invoke().data which is 'any'
-  // TData is TmdbGenre[] which is the type we want for `genres`
+
   const { data: genres, isLoading: isLoadingGenres } = useQuery<any, Error, TmdbGenre[], GenresQueryKey>({
     queryKey: ['tmdb', 'getGenres', undefined],
     queryFn: fetchTmdbData,
-    staleTime: Infinity, // Genres don't change often
+    staleTime: Infinity, 
+    onSuccess: (data) => { // This onSuccess is for genres query
+      queryClient.setQueryData(['tmdb', 'getGenres', undefined], data); // Manually update cache if needed for displayCategories
+    },
+    onError: (error: Error) => {
+        toast.error(`Failed to fetch categories: ${error.message}`);
+    }
   });
 
-  // Updated useQuery for movies with explicit generic arguments
   const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useQuery<any, Error, Movie[], MoviesQueryKey>({
     queryKey: ['tmdb', 'getMovies', selectedCategory],
     queryFn: fetchTmdbData,
-    enabled: false, // Don't fetch immediately; wait for category selection or button click
-    onSuccess: (data: Movie[]) => { // data is now correctly typed as Movie[]
-      if (data && data.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.length);
-        setCurrentMovie(data[randomIndex]);
-        // Optional: toast.success("Fetched new movies and picked one!");
-      } else {
-        setCurrentMovie(null);
-        if (selectedCategory !== "All") {
-            toast.info(`No movies found for '${displayCategories.find(c=>c.id === selectedCategory)?.name || 'this category'}'. Try "All" or another category!`);
-        } else {
-            toast.info(`No movies found. Please try again later.`);
-        }
-      }
-    },
-    onError: (error: Error) => {
-        setCurrentMovie(null); // Clear movie on error
-        toast.error(`Failed to fetch movies: ${error.message}`);
-    }
+    enabled: false, 
+    // onSuccess and onError are removed here and handled in useEffect below
   });
   
   useEffect(() => {
-    // Fetch movies when the selected category changes or when genres are loaded for the first time.
-    // This ensures that fetchMoviesForCategory is called which then triggers onSuccess/onError.
-    if (genres || selectedCategory) { // Fetch if genres are loaded OR if a category is selected (even if genres are still loading, for "All")
+    // Fetch movies when the selected category changes.
+    // `genres` being loaded isn't strictly necessary to trigger movie fetch for "All" or if genres are already cached.
+    // `fetchMoviesForCategory` is stable, so selectedCategory is the main trigger.
+    if (selectedCategory) {
+        console.log(`Category changed to: ${selectedCategory}. Fetching movies.`);
         fetchMoviesForCategory();
     }
-  }, [selectedCategory, genres, fetchMoviesForCategory]);
+  }, [selectedCategory, fetchMoviesForCategory]);
+
+  useEffect(() => {
+    // This useEffect handles the results of the movie fetch operation
+    if (isLoadingMovies) {
+        console.log("Movies are loading...");
+        return; // Don't process if still loading
+    }
+
+    if (isMoviesError && moviesError) {
+      console.error("Error fetching movies:", moviesError);
+      setCurrentMovie(null);
+      toast.error(`Failed to fetch movies: ${moviesError.message}`);
+    } else if (movies !== undefined) { // movies can be an empty array, so check for undefined
+      console.log("Movies data received:", movies);
+      if (movies.length > 0) {
+        const randomIndex = Math.floor(Math.random() * movies.length);
+        setCurrentMovie(movies[randomIndex]);
+        // toast.success("Fetched new movies and picked one!"); // Potentially too noisy
+      } else {
+        setCurrentMovie(null);
+        const categoryName = displayCategories.find(c => c.id === selectedCategory)?.name || (typeof selectedCategory === 'number' ? 'this category' : 'All');
+        if (selectedCategory !== "All") {
+            toast.info(`No movies found for '${categoryName}'. Try "All" or another category!`);
+        } else {
+            toast.info(`No movies found. Please try again later or select a specific category.`);
+        }
+      }
+    }
+  }, [movies, isLoadingMovies, isMoviesError, moviesError, selectedCategory, displayCategories]);
 
 
   const handleGetRandomMovie = () => {
-    // movies should now be correctly typed as Movie[] | undefined
+    console.log("Handle get random movie clicked.");
     if (movies && movies.length > 0 && !isLoadingMovies) {
+      console.log("Picking from existing movie list.");
       const randomIndex = Math.floor(Math.random() * movies.length);
       setCurrentMovie(movies[randomIndex]);
-      toast.success("Found a random movie!");
+      toast.success("Found a random movie from the current list!");
     } else {
+      console.log("No movies in list or still loading, re-fetching.");
       fetchMoviesForCategory(); 
     }
   };
 
   const handleSelectCategory = (categoryId: SelectedCategoryType) => {
+    console.log("Category selected:", categoryId);
+    setCurrentMovie(null); // Clear current movie when category changes
     setSelectedCategory(categoryId);
   };
   
-  const displayCategories: AppCategory[] = genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
+  // Use the genres data directly from the useQuery hook for displayCategories
+  const actualDisplayCategories: AppCategory[] = genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
@@ -122,7 +143,7 @@ const Index = () => {
       <main className="w-full max-w-4xl flex flex-col items-center space-y-8">
         <div className="w-full md:w-auto flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-6">
           <CategoryFilter
-            categories={displayCategories}
+            categories={actualDisplayCategories}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
             isLoading={isLoadingGenres}
@@ -133,12 +154,12 @@ const Index = () => {
             disabled={isLoadingMovies || isLoadingGenres}
           >
             <Shuffle size={20} className="mr-2" />
-            {isLoadingMovies && !currentMovie ? 'Finding Movie...' : 'Get Random Movie'}
+            {(isLoadingMovies && !currentMovie) ? 'Finding Movie...' : 'Get Another Movie'}
           </Button>
         </div>
         
         <div className="w-full flex justify-center">
-          <MovieCard movie={currentMovie} isLoading={isLoadingMovies && !currentMovie && !isMoviesError} />
+          <MovieCard movie={currentMovie} isLoading={(isLoadingMovies && !currentMovie && !isMoviesError)} />
         </div>
       </main>
 
