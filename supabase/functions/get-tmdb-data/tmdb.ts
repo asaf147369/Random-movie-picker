@@ -60,11 +60,14 @@ export async function fetchMovieById(movieId: string): Promise<AppMovie> {
 
 export async function discoverMovies(genreIdsParam: string | null, ratingGteParam: string | null): Promise<AppMovie[]> {
     console.log(`Discovering movies with GenreIDs: ${genreIdsParam}, RatingGTE: ${ratingGteParam}`);
+    
+    const today = new Date().toISOString().split('T')[0];
+    let baseUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=${VOTE_COUNT_GTE}&primary_release_date.lte=${today}`;
+    if (genreIdsParam) baseUrl += `&with_genres=${genreIdsParam}`;
+    if (ratingGteParam) baseUrl += `&vote_average.gte=${ratingGteParam}`;
       
     // Step 1: Fetch page 1 to get total_pages
-    let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=${VOTE_COUNT_GTE}&page=1`;
-    if (genreIdsParam) initialDiscoverUrl += `&with_genres=${genreIdsParam}`;
-    if (ratingGteParam) initialDiscoverUrl += `&vote_average.gte=${ratingGteParam}`;
+    const initialDiscoverUrl = `${baseUrl}&page=1`;
     
     console.log("Initial discover URL:", initialDiscoverUrl);
 
@@ -84,9 +87,7 @@ export async function discoverMovies(genreIdsParam: string | null, ratingGtePara
     console.log(`Selected random page: ${randomPage} out of ${maxPagesToConsider} (actual total: ${totalPages})`);
 
     // Step 3: Fetch movies from the random page
-    let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=${VOTE_COUNT_GTE}&page=${randomPage}`;
-    if (genreIdsParam) tmdbUrl += `&with_genres=${genreIdsParam}`;
-    if (ratingGteParam) tmdbUrl += `&vote_average.gte=${ratingGteParam}`;
+    const tmdbUrl = `${baseUrl}&page=${randomPage}`;
     
     console.log("Fetching movies from random page URL:", tmdbUrl);
     const response = await fetch(tmdbUrl);
