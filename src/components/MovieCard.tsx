@@ -7,14 +7,15 @@ import { Star, ExternalLink } from "lucide-react";
 interface MovieCardProps {
   movie: Movie | null;
   isLoading?: boolean;
+  hasSearched?: boolean;
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
+const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading, hasSearched }) => {
   if (isLoading) {
     return (
       <Card className="w-full max-w-md bg-card border-border shadow-xl p-6 text-center animate-pulse">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-foreground">Loading Movie...</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-foreground">Finding a great movie...</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-72 bg-muted rounded-md mb-4"></div>
@@ -26,13 +27,25 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoading }) => {
   }
 
   if (!movie) {
+    if (!hasSearched) {
+      return (
+        <Card className="w-full max-w-md bg-card border-border shadow-xl p-6 text-center">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold text-foreground">Let's Find a Movie!</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">Adjust the filters and click "Get a Random Movie" to start.</p>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card className="w-full max-w-md bg-card border-border shadow-xl p-6 text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold text-foreground">No Movie Found</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Try a different category or click "Get Another Movie" again!</p>
+          <p className="text-muted-foreground">Try different filters or click "Get a Random Movie" again!</p>
         </CardContent>
       </Card>
     );

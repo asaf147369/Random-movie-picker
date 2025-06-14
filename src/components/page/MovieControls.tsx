@@ -48,7 +48,7 @@ const MovieControls: React.FC<MovieControlsProps> = ({
         disabled={isLoading}
       >
         <Shuffle size={20} className="mr-2" />
-        {isLoading && !currentMovie ? 'Finding Movie...' : 'Get Another Movie'}
+        {isLoading && !currentMovie ? 'Finding Movie...' : 'Get a Random Movie'}
       </Button>
     </div>
   );

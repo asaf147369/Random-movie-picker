@@ -17,6 +17,7 @@ const Index = () => {
     handleGetRandomMovie,
     handleApplyFilter,
     handleRatingChange,
+    hasSearched,
   } = useMoviePicker();
 
   return (
@@ -39,7 +40,7 @@ const Index = () => {
             />
           </div>
           <div className="lg:col-span-2 w-full flex justify-center">
-            <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie} />
+            <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie} hasSearched={hasSearched} />
           </div>
         </div>
       </main>

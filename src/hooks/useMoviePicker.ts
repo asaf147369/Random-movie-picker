@@ -8,6 +8,7 @@ export const useMoviePicker = () => {
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>([]);
   const [ratingThreshold, setRatingThreshold] = useState<number>(0);
   const [isFindingMovie, setIsFindingMovie] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Data fetching hooks
   const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useGenres();
@@ -25,12 +26,13 @@ export const useMoviePicker = () => {
   }, [isGenresError, genresError]);
   
   const handleGetRandomMovie = async () => {
+    setHasSearched(true);
     console.log("Handle get random movie clicked. Attempting to find a suitable movie with current filters...");
     setIsFindingMovie(true);
     setCurrentMovie(null); // Clear movie to show loader
 
     let foundMovie: Movie | null = null;
-    const MAX_ATTEMPTS = 5;
+    const MAX_ATTEMPTS = 3;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       console.log(`Attempt ${attempt} of ${MAX_ATTEMPTS} to find a movie...`);
@@ -89,5 +91,6 @@ export const useMoviePicker = () => {
     handleGetRandomMovie,
     handleApplyFilter,
     handleRatingChange,
+    hasSearched,
   };
 };

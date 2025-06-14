@@ -7,7 +7,7 @@ const Header = () => (
       Random Movie Night
     </h1>
     <p className="text-xl text-muted-foreground">
-      Powered by TMDB. Can't decide what to watch? Let us pick for you!
+      Can't decide what to watch? Let us pick for you!
     </p>
   </header>
 );
