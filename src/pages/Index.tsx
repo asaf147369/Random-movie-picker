@@ -20,24 +20,27 @@ const Index = () => {
   } = useMoviePicker();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
       <Header />
 
-      <main className="w-full max-w-5xl flex flex-col items-center space-y-8">
-        <MovieControls
-          categories={displayCategories}
-          selectedCategory={selectedCategory}
-          ratingThreshold={ratingThreshold}
-          onApplyFilter={handleApplyFilter}
-          onRatingChange={handleRatingChange}
-          onGetRandomMovie={handleGetRandomMovie}
-          isLoading={isLoading}
-          isLoadingGenres={isLoadingGenres}
-          currentMovie={currentMovie}
-        />
-        
-        <div className="w-full flex justify-center">
-          <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie} />
+      <main className="w-full max-w-7xl mx-auto flex-grow p-4 sm:p-8 flex items-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1 w-full lg:sticky lg:top-8">
+            <MovieControls
+              categories={displayCategories}
+              selectedCategory={selectedCategory}
+              ratingThreshold={ratingThreshold}
+              onApplyFilter={handleApplyFilter}
+              onRatingChange={handleRatingChange}
+              onGetRandomMovie={handleGetRandomMovie}
+              isLoading={isLoading}
+              isLoadingGenres={isLoadingGenres}
+              currentMovie={currentMovie}
+            />
+          </div>
+          <div className="lg:col-span-2 w-full flex justify-center">
+            <MovieCard movie={currentMovie} isLoading={isLoading && !currentMovie} />
+          </div>
         </div>
       </main>
 

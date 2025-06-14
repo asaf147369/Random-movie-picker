@@ -30,7 +30,7 @@ const MovieControls: React.FC<MovieControlsProps> = ({
   currentMovie,
 }) => {
   return (
-    <div className="w-full flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+    <div className="w-full flex flex-col items-center justify-center gap-6">
       <CategoryFilter
         categories={categories}
         selectedCategory={selectedCategory}
