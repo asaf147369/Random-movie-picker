@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MovieCard from '@/components/MovieCard';
 import CategoryFilter from '@/components/CategoryFilter';
 import { Button } from '@/components/ui/button';
@@ -42,29 +42,32 @@ const Index = () => {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>("All");
   
-  const displayCategories: AppCategory[] = React.useMemo(() => {
-    const genresFromQuery = queryClient.getQueryData<TmdbGenre[]>(['tmdb', 'getGenres', undefined]);
-    return genresFromQuery ? [{ id: "All", name: "All" }, ...genresFromQuery] : [{ id: "All", name: "All" }];
-  }, [queryClient]);
-
-
-  const { data: genres, isLoading: isLoadingGenres } = useQuery<any, Error, TmdbGenre[], GenresQueryKey>({
+  const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useQuery<TmdbGenre[], Error, TmdbGenre[], GenresQueryKey>({
     queryKey: ['tmdb', 'getGenres', undefined],
     queryFn: fetchTmdbData,
-    staleTime: Infinity, 
-    onSuccess: (data) => { // This onSuccess is for genres query
-      queryClient.setQueryData(['tmdb', 'getGenres', undefined], data); // Manually update cache if needed for displayCategories
-    },
-    onError: (error: Error) => {
-        toast.error(`Failed to fetch categories: ${error.message}`);
-    }
+    staleTime: Infinity,
+    // onSuccess and onError are removed as per React Query v5 practices
+    // Error handling will be done in a useEffect hook below
+    // Successful data caching is handled automatically by React Query
   });
 
-  const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useQuery<any, Error, Movie[], MoviesQueryKey>({
+  // useEffect for handling genre query errors
+  useEffect(() => {
+    if (isGenresError && genresError) {
+      toast.error(`Failed to fetch categories: ${genresError.message}`);
+    }
+  }, [isGenresError, genresError]);
+  
+  // displayCategories is now derived directly from the 'genres' state from useQuery.
+  // This makes it reactive and simplifies updates.
+  const displayCategories: AppCategory[] = useMemo(() => {
+    return genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
+  }, [genres]);
+
+  const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useQuery<Movie[], Error, Movie[], MoviesQueryKey>({
     queryKey: ['tmdb', 'getMovies', selectedCategory],
     queryFn: fetchTmdbData,
     enabled: false, 
-    // onSuccess and onError are removed here and handled in useEffect below
   });
   
   useEffect(() => {
@@ -126,9 +129,6 @@ const Index = () => {
     setSelectedCategory(categoryId);
   };
   
-  // Use the genres data directly from the useQuery hook for displayCategories
-  const actualDisplayCategories: AppCategory[] = genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 sm:p-8 transition-colors duration-300">
       <header className="mb-10 text-center">
@@ -143,7 +143,7 @@ const Index = () => {
       <main className="w-full max-w-4xl flex flex-col items-center space-y-8">
         <div className="w-full md:w-auto flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-6">
           <CategoryFilter
-            categories={actualDisplayCategories}
+            categories={displayCategories}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
             isLoading={isLoadingGenres}
