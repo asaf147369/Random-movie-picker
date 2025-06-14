@@ -15,7 +15,7 @@ const Index = () => {
     isLoadingGenres,
     isMovieFromUrlError,
     handleGetRandomMovie,
-    handleSelectCategory,
+    handleApplyFilter,
   } = useMoviePicker();
 
   return (
@@ -26,7 +26,7 @@ const Index = () => {
         <MovieControls
           categories={displayCategories}
           selectedCategory={selectedCategory}
-          onSelectCategory={handleSelectCategory}
+          onApplyFilter={handleApplyFilter}
           onGetRandomMovie={handleGetRandomMovie}
           isLoading={isLoading}
           isLoadingGenres={isLoadingGenres}

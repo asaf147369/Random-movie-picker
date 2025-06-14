@@ -8,7 +8,7 @@ import { Shuffle } from 'lucide-react';
 interface MovieControlsProps {
   categories: AppCategory[];
   selectedCategory: SelectedCategoryType;
-  onSelectCategory: (categoryId: number) => void;
+  onApplyFilter: (categoryIds: number[]) => void;
   onGetRandomMovie: () => void;
   isLoading: boolean;
   isLoadingGenres: boolean;
@@ -18,7 +18,7 @@ interface MovieControlsProps {
 const MovieControls: React.FC<MovieControlsProps> = ({
   categories,
   selectedCategory,
-  onSelectCategory,
+  onApplyFilter,
   onGetRandomMovie,
   isLoading,
   isLoadingGenres,
@@ -29,7 +29,7 @@ const MovieControls: React.FC<MovieControlsProps> = ({
       <CategoryFilter
         categories={categories}
         selectedCategory={selectedCategory}
-        onSelectCategory={onSelectCategory}
+        onApplyFilter={onApplyFilter}
         isLoading={isLoadingGenres}
       />
       <Button

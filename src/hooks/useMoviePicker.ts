@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -6,7 +5,6 @@ import { useGenres, useMovies, useMovieById } from './useTmdb';
 import { Movie, SelectedCategoryType, AppCategory } from '@/types';
 
 const MAX_PICKS_PER_PAGE = 5;
-const MAX_GENRES = 3;
 
 export const useMoviePicker = () => {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
@@ -125,25 +123,13 @@ export const useMoviePicker = () => {
     }
   };
   
-  const handleSelectCategory = (genreId: number) => {
-    console.log("Toggling category:", genreId);
+  const handleApplyFilter = (genreIds: SelectedCategoryType) => {
+    console.log("Applying category filter with selection:", genreIds);
     if (movieIdFromUrl) {
         setSearchParams({}, { replace: true });
     }
     setCurrentMovie(null); 
-
-    setSelectedCategory(currentCategories => {
-      const isSelected = currentCategories.includes(genreId);
-      if (isSelected) {
-        return currentCategories.filter(id => id !== genreId);
-      }
-      if (currentCategories.length < MAX_GENRES) {
-        return [...currentCategories, genreId];
-      }
-      
-      toast.info(`You can select a maximum of ${MAX_GENRES} genres.`);
-      return currentCategories;
-    });
+    setSelectedCategory(genreIds);
   };
   
   const isLoading = isLoadingMovies || isLoadingGenres || isLoadingMovieFromUrl;
@@ -156,6 +142,6 @@ export const useMoviePicker = () => {
     isLoadingGenres,
     isMovieFromUrlError,
     handleGetRandomMovie,
-    handleSelectCategory,
+    handleApplyFilter,
   };
 };
