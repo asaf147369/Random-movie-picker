@@ -36,30 +36,29 @@ const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
   return data;
 };
 
+const MAX_PICKS_PER_PAGE = 5;
 
 const Index = () => {
   const queryClient = useQueryClient();
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>("All");
   
+  // New state variables
+  const [moviesShownFromCurrentPageCount, setMoviesShownFromCurrentPageCount] = useState(0);
+  const [shownMovieIdsFromCurrentPage, setShownMovieIdsFromCurrentPage] = useState<number[]>([]);
+
   const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useQuery<TmdbGenre[], Error, TmdbGenre[], GenresQueryKey>({
     queryKey: ['tmdb', 'getGenres', undefined],
     queryFn: fetchTmdbData,
     staleTime: Infinity,
-    // onSuccess and onError are removed as per React Query v5 practices
-    // Error handling will be done in a useEffect hook below
-    // Successful data caching is handled automatically by React Query
   });
 
-  // useEffect for handling genre query errors
   useEffect(() => {
     if (isGenresError && genresError) {
       toast.error(`Failed to fetch categories: ${genresError.message}`);
     }
   }, [isGenresError, genresError]);
   
-  // displayCategories is now derived directly from the 'genres' state from useQuery.
-  // This makes it reactive and simplifies updates.
   const displayCategories: AppCategory[] = useMemo(() => {
     return genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
   }, [genres]);
@@ -71,31 +70,39 @@ const Index = () => {
   });
   
   useEffect(() => {
-    // Fetch movies when the selected category changes.
-    // `genres` being loaded isn't strictly necessary to trigger movie fetch for "All" or if genres are already cached.
-    // `fetchMoviesForCategory` is stable, so selectedCategory is the main trigger.
     if (selectedCategory) {
         console.log(`Category changed to: ${selectedCategory}. Fetching movies.`);
+        // Reset counters immediately when category changes or initial fetch for category happens
+        // This is also handled in handleSelectCategory for explicit category changes
+        setMoviesShownFromCurrentPageCount(0);
+        setShownMovieIdsFromCurrentPage([]);
         fetchMoviesForCategory();
     }
   }, [selectedCategory, fetchMoviesForCategory]);
 
   useEffect(() => {
-    // This useEffect handles the results of the movie fetch operation
     if (isLoadingMovies) {
         console.log("Movies are loading...");
-        return; // Don't process if still loading
+        return; 
     }
 
     if (isMoviesError && moviesError) {
       console.error("Error fetching movies:", moviesError);
       setCurrentMovie(null);
+      setMoviesShownFromCurrentPageCount(0); // Reset on error
+      setShownMovieIdsFromCurrentPage([]);   // Reset on error
       toast.error(`Failed to fetch movies: ${moviesError.message}`);
-    } else if (movies !== undefined) { // movies can be an empty array, so check for undefined
+    } else if (movies !== undefined) { 
       console.log("Movies data received:", movies);
+      setMoviesShownFromCurrentPageCount(0); // Reset counter for new batch
+      setShownMovieIdsFromCurrentPage([]);   // Reset shown IDs for new batch
+
       if (movies.length > 0) {
         const randomIndex = Math.floor(Math.random() * movies.length);
-        setCurrentMovie(movies[randomIndex]);
+        const firstMovie = movies[randomIndex];
+        setCurrentMovie(firstMovie);
+        setShownMovieIdsFromCurrentPage([firstMovie.id]);
+        setMoviesShownFromCurrentPageCount(1);
         // toast.success("Fetched new movies and picked one!"); // Potentially too noisy
       } else {
         setCurrentMovie(null);
@@ -112,21 +119,43 @@ const Index = () => {
 
   const handleGetRandomMovie = () => {
     console.log("Handle get random movie clicked.");
-    if (movies && movies.length > 0 && !isLoadingMovies) {
-      console.log("Picking from existing movie list.");
-      const randomIndex = Math.floor(Math.random() * movies.length);
-      setCurrentMovie(movies[randomIndex]);
-      toast.success("Found a random movie from the current list!");
+
+    if (isLoadingMovies || !movies) {
+      console.log("Movies loading or no data, re-fetching.");
+      fetchMoviesForCategory();
+      return;
+    }
+  
+    if (movies.length === 0) {
+      console.log("No movies in list (current batch is empty), re-fetching.");
+      fetchMoviesForCategory(); // Attempt to get new movies
+      return;
+    }
+
+    const availableMoviesFromCurrentBatch = movies.filter(movie => !shownMovieIdsFromCurrentPage.includes(movie.id));
+
+    if (moviesShownFromCurrentPageCount < MAX_PICKS_PER_PAGE && availableMoviesFromCurrentBatch.length > 0) {
+      console.log(`Picking from existing movie list (count: ${moviesShownFromCurrentPageCount + 1}/${MAX_PICKS_PER_PAGE}).`);
+      const randomIndex = Math.floor(Math.random() * availableMoviesFromCurrentBatch.length);
+      const newMovie = availableMoviesFromCurrentBatch[randomIndex];
+      setCurrentMovie(newMovie);
+      setShownMovieIdsFromCurrentPage(prevIds => [...prevIds, newMovie.id]);
+      setMoviesShownFromCurrentPageCount(prevCount => prevCount + 1);
+      toast.success("Found another movie from the current batch!");
     } else {
-      console.log("No movies in list or still loading, re-fetching.");
+      console.log(`Max picks (${MAX_PICKS_PER_PAGE}) reached or no new movies in current batch. Fetching new page.`);
+      // Resetting counters will be handled by the useEffect when new movies data arrives from fetchMoviesForCategory
       fetchMoviesForCategory(); 
     }
   };
 
   const handleSelectCategory = (categoryId: SelectedCategoryType) => {
     console.log("Category selected:", categoryId);
-    setCurrentMovie(null); // Clear current movie when category changes
+    setCurrentMovie(null); 
+    setMoviesShownFromCurrentPageCount(0); // Reset for new category
+    setShownMovieIdsFromCurrentPage([]);   // Reset for new category
     setSelectedCategory(categoryId);
+    // fetchMoviesForCategory will be called by the useEffect watching selectedCategory
   };
   
   return (
