@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Deno Deploy
 
@@ -79,7 +80,7 @@ serve(async (req: Request) => {
     }
 
     let action: string | null = null;
-    let genreIdParam: string | null = null;
+    let genreIdsParam: string | null = null;
     let movieIdParam: string | null = null;
 
     if (req.method === "POST") {
@@ -89,11 +90,11 @@ serve(async (req: Request) => {
             if (body && typeof body.queryString === 'string') {
                 const params = new URLSearchParams(body.queryString);
                 action = params.get("action");
-                genreIdParam = params.get("genreId");
+                genreIdsParam = params.get("genreIds");
                 movieIdParam = params.get("movieId");
             } else {
                 action = body.action; // Fallback
-                genreIdParam = body.genreId; // Fallback
+                genreIdsParam = body.genreIds; // Fallback
                 movieIdParam = body.movieId; // Fallback
             }
         } catch (e) {
@@ -104,9 +105,9 @@ serve(async (req: Request) => {
     if (!action) {
         const url = new URL(req.url);
         action = url.searchParams.get("action");
-        genreIdParam = url.searchParams.get("genreId");
+        genreIdsParam = url.searchParams.get("genreIds");
         movieIdParam = url.searchParams.get("movieId");
-        console.log(`Action from URL: ${action}, GenreID from URL: ${genreIdParam}, MovieID from URL: ${movieIdParam}`);
+        console.log(`Action from URL: ${action}, GenreIDs from URL: ${genreIdsParam}, MovieID from URL: ${movieIdParam}`);
     }
 
 
@@ -150,12 +151,12 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     } else if (action === "getMovies") {
-      console.log(`Action: getMovies, GenreID: ${genreIdParam}`);
+      console.log(`Action: getMovies, GenreIDs: ${genreIdsParam}`);
       
       // Step 1: Fetch page 1 to get total_pages
       let initialDiscoverUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=1`;
-      if (genreIdParam && genreIdParam !== "All") {
-        initialDiscoverUrl += `&with_genres=${genreIdParam}`;
+      if (genreIdsParam) {
+        initialDiscoverUrl += `&with_genres=${genreIdsParam}`;
       }
       console.log("Initial discover URL:", initialDiscoverUrl);
 
@@ -184,8 +185,8 @@ serve(async (req: Request) => {
 
       // Step 3: Fetch movies from the random page
       let tmdbUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&vote_count.gte=100&page=${randomPage}`;
-      if (genreIdParam && genreIdParam !== "All") {
-        tmdbUrl += `&with_genres=${genreIdParam}`;
+      if (genreIdsParam) {
+        tmdbUrl += `&with_genres=${genreIdsParam}`;
       }
       console.log("Fetching movies from random page URL:", tmdbUrl);
 

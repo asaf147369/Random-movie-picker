@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -5,10 +6,11 @@ import { useGenres, useMovies, useMovieById } from './useTmdb';
 import { Movie, SelectedCategoryType, AppCategory } from '@/types';
 
 const MAX_PICKS_PER_PAGE = 5;
+const MAX_GENRES = 3;
 
 export const useMoviePicker = () => {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>("All");
+  const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const movieIdFromUrl = searchParams.get('movie');
 
@@ -21,7 +23,7 @@ export const useMoviePicker = () => {
   const { data: movies, isLoading: isLoadingMovies, isError: isMoviesError, error: moviesError, refetch: fetchMoviesForCategory } = useMovies(selectedCategory);
 
   const displayCategories: AppCategory[] = useMemo(() => {
-    return genres ? [{ id: "All", name: "All" }, ...genres] : [{ id: "All", name: "All" }];
+    return genres ? [...genres] : [];
   }, [genres]);
 
   // Effect for handling errors
@@ -45,8 +47,8 @@ export const useMoviePicker = () => {
   }, [isMovieFromUrlError, movieFromUrlError, setSearchParams]);
 
   useEffect(() => {
-    if (selectedCategory && !movieIdFromUrl) {
-      console.log(`Category changed to: ${selectedCategory}. Fetching movies.`);
+    if (!movieIdFromUrl) {
+      console.log(`Category changed to: ${JSON.stringify(selectedCategory)}. Fetching movies.`);
       setMoviesShownFromCurrentPageCount(0);
       setShownMovieIdsFromCurrentPage([]);
       fetchMoviesForCategory();
@@ -84,8 +86,14 @@ export const useMoviePicker = () => {
         setMoviesShownFromCurrentPageCount(1);
       } else {
         setCurrentMovie(null);
-        const categoryName = displayCategories.find(c => c.id === selectedCategory)?.name || 'this category';
-        toast.info(`No movies found for '${categoryName}'. Try "All" or another category!`);
+        let categoryName = 'the current selection';
+        if (selectedCategory.length > 0 && displayCategories.length > 0) {
+            categoryName = `'${displayCategories
+                .filter(c => selectedCategory.includes(c.id))
+                .map(c => c.name)
+                .join(', ')}'`;
+        }
+        toast.info(`No movies found for ${categoryName}. Try another combination!`);
       }
     }
   }, [movies, isLoadingMovies, isMoviesError, moviesError, selectedCategory, displayCategories, movieFromUrl, isLoadingMovieFromUrl]);
@@ -117,13 +125,25 @@ export const useMoviePicker = () => {
     }
   };
   
-  const handleSelectCategory = (categoryId: SelectedCategoryType) => {
-    console.log("Category selected:", categoryId);
+  const handleSelectCategory = (genreId: number) => {
+    console.log("Toggling category:", genreId);
     if (movieIdFromUrl) {
         setSearchParams({}, { replace: true });
     }
     setCurrentMovie(null); 
-    setSelectedCategory(categoryId);
+
+    setSelectedCategory(currentCategories => {
+      const isSelected = currentCategories.includes(genreId);
+      if (isSelected) {
+        return currentCategories.filter(id => id !== genreId);
+      }
+      if (currentCategories.length < MAX_GENRES) {
+        return [...currentCategories, genreId];
+      }
+      
+      toast.info(`You can select a maximum of ${MAX_GENRES} genres.`);
+      return currentCategories;
+    });
   };
   
   const isLoading = isLoadingMovies || isLoadingGenres || isLoadingMovieFromUrl;

@@ -8,7 +8,7 @@ import { Shuffle } from 'lucide-react';
 interface MovieControlsProps {
   categories: AppCategory[];
   selectedCategory: SelectedCategoryType;
-  onSelectCategory: (categoryId: SelectedCategoryType) => void;
+  onSelectCategory: (categoryId: number) => void;
   onGetRandomMovie: () => void;
   isLoading: boolean;
   isLoadingGenres: boolean;

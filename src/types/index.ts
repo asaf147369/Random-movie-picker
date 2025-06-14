@@ -1,3 +1,4 @@
+
 export interface TmdbGenre {
   id: number;
   name: string;
@@ -13,9 +14,8 @@ export interface Movie {
   vote_average?: number; // TMDB rating out of 10
 }
 
-// Category type for the filter component. "All" is a special case.
-// The CategoryFilter will receive an array of TmdbGenre, plus a synthetic "All" entry.
-export type AppCategory = TmdbGenre | { id: "All"; name: "All" };
+// Category type for the filter component.
+export type AppCategory = TmdbGenre;
 
-// This specific type will be used by the filter state and callbacks
-export type SelectedCategoryType = number | "All";
+// This specific type will be used by the filter state and callbacks, representing an array of genre IDs.
+export type SelectedCategoryType = number[];

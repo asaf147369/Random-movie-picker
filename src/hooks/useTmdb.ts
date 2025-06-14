@@ -16,8 +16,9 @@ const fetchTmdbData = async (context: QueryFunctionContext<AppQueryKey>) => {
   
   let queryString = `action=${action}`;
   if (action === "getMovies") {
-    if (typeof param === 'number') {
-      queryString += `&genreId=${param}`;
+    const genreIds = param as SelectedCategoryType;
+    if (genreIds.length > 0) {
+      queryString += `&genreIds=${genreIds.join(',')}`;
     }
   } else if (action === "getMovieById" && typeof param === 'string') {
     queryString += `&movieId=${param}`;
