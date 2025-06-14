@@ -8,6 +8,7 @@ export const useMoviePicker = () => {
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategoryType>([]);
   const [ratingThreshold, setRatingThreshold] = useState<number>(0);
+  const [isFindingMovie, setIsFindingMovie] = useState(false);
 
   // Data fetching hooks
   const { data: genres, isLoading: isLoadingGenres, isError: isGenresError, error: genresError } = useGenres();
@@ -24,34 +25,51 @@ export const useMoviePicker = () => {
     }
   }, [isGenresError, genresError]);
   
-  const handleGetRandomMovie = () => {
-    console.log("Handle get random movie clicked. Fetching movies...");
-    fetchMoviesForCategory().then(queryResult => {
+  const handleGetRandomMovie = async () => {
+    console.log("Handle get random movie clicked. Attempting to find a suitable movie...");
+    setIsFindingMovie(true);
+    setCurrentMovie(null); // Clear movie to show loader
+
+    let foundMovie: Movie | null = null;
+    const MAX_ATTEMPTS = 5;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      console.log(`Attempt ${attempt} of ${MAX_ATTEMPTS} to find a movie...`);
+      const queryResult = await fetchMoviesForCategory();
+
       if (queryResult.isSuccess && queryResult.data) {
         const fetchedMovies = queryResult.data;
+        console.log(`Fetched ${fetchedMovies.length} movies in attempt ${attempt}:`, fetchedMovies);
+        
         const filteredMovies = fetchedMovies.filter(m => m.vote_average !== undefined && m.vote_average >= ratingThreshold);
+        console.log(`Found ${filteredMovies.length} movies matching rating >= ${ratingThreshold.toFixed(1)}`);
 
         if (filteredMovies.length > 0) {
           const randomIndex = Math.floor(Math.random() * filteredMovies.length);
-          const newMovie = filteredMovies[randomIndex];
-          setCurrentMovie(newMovie);
-        } else {
-          setCurrentMovie(null);
-          let categoryName = 'the current selection';
-          if (selectedCategory.length > 0 && displayCategories.length > 0) {
-              categoryName = `'${displayCategories
-                  .filter(c => selectedCategory.includes(c.id))
-                  .map(c => c.name)
-                  .join(', ')}'`;
-          }
-          toast.info(`No movies found for ${categoryName} with a rating of ${ratingThreshold.toFixed(1)} or higher. Try different filters!`);
+          foundMovie = filteredMovies[randomIndex];
+          break; // Exit loop if a movie is found
         }
       } else if (queryResult.isError) {
-          console.error("Error fetching movies:", queryResult.error);
-          setCurrentMovie(null);
-          toast.error(`Failed to fetch movies: ${queryResult.error.message}`);
+        console.error("Error fetching movies:", queryResult.error);
+        toast.error(`Failed to fetch movies: ${queryResult.error.message}`);
+        break; // Stop retrying on a network error
       }
-    });
+    }
+
+    if (foundMovie) {
+      setCurrentMovie(foundMovie);
+    } else {
+      let categoryName = 'the current selection';
+      if (selectedCategory.length > 0 && displayCategories.length > 0) {
+          categoryName = `'${displayCategories
+              .filter(c => selectedCategory.includes(c.id))
+              .map(c => c.name)
+              .join(', ')}'`;
+      }
+      toast.info(`Could not find a movie for ${categoryName} with rating >= ${ratingThreshold.toFixed(1)} after ${MAX_ATTEMPTS} attempts. Try different filters!`);
+    }
+    
+    setIsFindingMovie(false);
   };
   
   const handleApplyFilter = (genreIds: SelectedCategoryType) => {
@@ -63,7 +81,7 @@ export const useMoviePicker = () => {
     setRatingThreshold(value);
   }
   
-  const isLoading = isFetchingMovies;
+  const isLoading = isFetchingMovies || isFindingMovie;
 
   return {
     currentMovie,
